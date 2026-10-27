@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sport Quiz</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+    <section id="start" class="screen">
+      <h1>Sport Quiz</h1>
+      <p>Answer the questions and see how high you can score.</p>
+      <button id="startBtn">Start game</button>
+    </section>
+
+    <section id="game" class="screen hidden">
+      <div class="status">
+        <span id="progress"></span>
+        <span id="score"></span>
+      </div>
+      <h2 id="question"></h2>
+      <div id="answers"></div>
+      <button id="nextBtn" class="hidden">Next</button>
+    </section>
+
+    <section id="end" class="screen hidden">
+      <h1>Game over</h1>
+      <p id="result"></p>
+      <button id="restartBtn">Play again</button>
+    </section>
+  </main>
+  <script src="questions.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
