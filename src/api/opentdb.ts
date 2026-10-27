@@ -2,9 +2,11 @@ import type { Difficulty, Question } from '@/data/questions';
 
 // Docs: https://opentdb.com/api_config.php
 const BASE_URL = 'https://opentdb.com';
-// OpenTDB allows one question request per IP every 5 seconds.
-const RATE_LIMIT_MS = 5000;
-const MAX_ATTEMPTS = 3;
+// OpenTDB allows one question request per IP every 5 seconds; keep a small margin.
+const RATE_LIMIT_MS = 5500;
+const MAX_ATTEMPTS = 4;
+// A request that takes longer than this is aborted and retried.
+const REQUEST_TIMEOUT_MS = 10000;
 
 const ResponseCode = {
   Success: 0,
@@ -27,18 +29,28 @@ type ApiQuestion = {
 type QuestionsResponse = { response_code: number; results: ApiQuestion[] };
 type TokenResponse = { response_code: number; token: string };
 
-class RateLimitError extends Error {}
+/** Errors worth retrying: rate limited or no response in time. */
+class RetryableError extends Error {}
 
 // A session token stops OpenTDB from repeating questions across games.
 // Stored as a promise so concurrent callers share one token request.
 let sessionToken: Promise<string> | null = null;
 
 async function getJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  // OpenTDB signals its rate limit with HTTP 429 as well as response_code 5.
-  if (res.status === 429) throw new RateLimitError();
-  if (!res.ok) throw new Error(`OpenTDB request failed (${res.status})`);
-  return (await res.json()) as T;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    // OpenTDB signals its rate limit with HTTP 429 as well as response_code 5.
+    if (res.status === 429) throw new RetryableError('Rate limited');
+    if (!res.ok) throw new Error(`OpenTDB request failed (${res.status})`);
+    return (await res.json()) as T;
+  } catch (e) {
+    if (controller.signal.aborted) throw new RetryableError('Request timed out');
+    throw e;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 // Question requests run one at a time, at least RATE_LIMIT_MS apart, so
@@ -54,7 +66,8 @@ function getQuestions(url: string): Promise<QuestionsResponse> {
     try {
       return await getJson<QuestionsResponse>(url);
     } catch (e) {
-      if (e instanceof RateLimitError) return { response_code: ResponseCode.RateLimit, results: [] };
+      // Treated like OpenTDB's own rate-limit code: wait for the queue and retry.
+      if (e instanceof RetryableError) return { response_code: ResponseCode.RateLimit, results: [] };
       throw e;
     }
   });

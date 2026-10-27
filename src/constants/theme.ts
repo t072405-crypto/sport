@@ -13,6 +13,7 @@ export const colors = {
   wrong: '#E5484D',
   wrongBg: '#3D1B22',
   track: '#1F2A4D',
+  tiebreaker: '#F59E0B',
 } as const;
 
 export const difficultyColors: Record<Difficulty, string> = {

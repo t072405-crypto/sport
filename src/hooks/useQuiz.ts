@@ -5,10 +5,18 @@ import { OFFLINE_QUESTIONS, type Difficulty, type Question } from '@/data/questi
 import { teamForQuestion, type Scores } from '@/data/teams';
 
 export const QUESTIONS_PER_GAME = 10;
+/** A tiebreaker round gives each team one more question. */
+const TIEBREAKER_ROUND_SIZE = 2;
 /** OpenTDB category 21: Sports. */
 const SPORTS_CATEGORY_ID = 21;
 
 export type QuizStatus = 'loading' | 'error' | 'playing';
+/** What happened when the player tapped Next. */
+export type NextResult = 'next' | 'finished';
+
+function pickOffline(count: number): Question[] {
+  return [...OFFLINE_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, count);
+}
 
 export function useQuiz(difficulty: Difficulty) {
   const [status, setStatus] = useState<QuizStatus>('loading');
@@ -17,6 +25,8 @@ export function useQuiz(difficulty: Difficulty) {
   const [index, setIndex] = useState(0);
   const [scores, setScores] = useState<Scores>([0, 0]);
   const [selected, setSelected] = useState<number | null>(null);
+  /** True while tiebreaker questions are loading. */
+  const [loadingTiebreaker, setLoadingTiebreaker] = useState(false);
 
   // Ignores responses from an older load or after unmount.
   const requestId = useRef(0);
@@ -24,13 +34,17 @@ export function useQuiz(difficulty: Difficulty) {
   const total = questions.length;
   const question = questions[index] as Question | undefined;
   const answered = selected !== null;
-  const isLastQuestion = total > 0 && index === total - 1;
   const currentTeam = teamForQuestion(index);
+  const isTiebreaker = index >= QUESTIONS_PER_GAME;
+  const tiebreakerRound = isTiebreaker
+    ? Math.floor((index - QUESTIONS_PER_GAME) / TIEBREAKER_ROUND_SIZE) + 1
+    : 0;
 
   const resetProgress = useCallback(() => {
     setIndex(0);
     setScores([0, 0]);
     setSelected(null);
+    setLoadingTiebreaker(false);
   }, []);
 
   // Only sets state after the network call, so it is safe to run from an effect.
@@ -94,12 +108,48 @@ export function useQuiz(difficulty: Difficulty) {
     [selected, question, currentTeam],
   );
 
-  /** Moves to the next question. After the last one, the screen shows the result page instead. */
-  const next = useCallback(() => {
-    if (selected === null || isLastQuestion) return;
+  /** Adds one tiebreaker round (a question for each team) and moves to it. */
+  const addTiebreakerRound = useCallback(async () => {
+    const id = requestId.current;
+    setLoadingTiebreaker(true);
+    let extra: Question[];
+    try {
+      extra = await fetchQuestions({
+        amount: TIEBREAKER_ROUND_SIZE,
+        difficulty,
+        categoryId: SPORTS_CATEGORY_ID,
+      });
+    } catch {
+      // Never leave a tie unresolved: fall back to offline questions.
+      extra = pickOffline(TIEBREAKER_ROUND_SIZE);
+    }
+    if (id !== requestId.current) return;
+    // Unique ids so answer buttons don't reuse keys from earlier questions.
+    setQuestions((current) => [
+      ...current,
+      ...extra.map((q, i) => ({ ...q, id: current.length + i })),
+    ]);
     setIndex((i) => i + 1);
     setSelected(null);
-  }, [selected, isLastQuestion]);
+    setLoadingTiebreaker(false);
+  }, [difficulty]);
+
+  /**
+   * Moves to the next question. At the end of the questions, a tie starts a
+   * tiebreaker round; otherwise the game is finished.
+   */
+  const next = useCallback(async (): Promise<NextResult> => {
+    if (selected === null || loadingTiebreaker) return 'next';
+    if (index < total - 1) {
+      setIndex((i) => i + 1);
+      setSelected(null);
+      return 'next';
+    }
+    // Every round ends after team 2's turn, so both teams have had equal turns here.
+    if (scores[0] !== scores[1]) return 'finished';
+    await addTiebreakerRound();
+    return 'next';
+  }, [selected, loadingTiebreaker, index, total, scores, addTiebreakerRound]);
 
   return {
     status,
@@ -112,7 +162,9 @@ export function useQuiz(difficulty: Difficulty) {
     currentTeam,
     selected,
     answered,
-    isLastQuestion,
+    isTiebreaker,
+    tiebreakerRound,
+    loadingTiebreaker,
     select,
     next,
     /** Reloads questions after a failed load. */

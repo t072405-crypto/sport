@@ -13,7 +13,7 @@ import { TeamScoreboard } from '@/components/TeamScoreboard';
 import { colors, difficultyColors, radius, teamColors } from '@/constants/theme';
 import { isDifficulty } from '@/data/questions';
 import { teamsFromParams } from '@/data/teams';
-import { useQuiz } from '@/hooks/useQuiz';
+import { QUESTIONS_PER_GAME, useQuiz } from '@/hooks/useQuiz';
 
 export default function GameScreen() {
   const params = useLocalSearchParams<{ difficulty?: string; team1?: string; team2?: string }>();
@@ -29,11 +29,8 @@ export default function GameScreen() {
     return 'disabled';
   }
 
-  function handleNext() {
-    if (!quiz.isLastQuestion) {
-      quiz.next();
-      return;
-    }
+  async function handleNext() {
+    if ((await quiz.next()) !== 'finished') return;
     // Replace the game so "back" from the result goes to the difficulty screen.
     router.replace({
       pathname: '/result',
@@ -43,9 +40,15 @@ export default function GameScreen() {
         team2: teams[1],
         score1: scores[0],
         score2: scores[1],
+        tiebreaker: quiz.isTiebreaker ? 1 : 0,
       },
     });
   }
+
+  const progressLabel = quiz.isTiebreaker
+    ? `Tiebreaker · Round ${quiz.tiebreakerRound}`
+    : `Question ${index + 1} of ${QUESTIONS_PER_GAME}`;
+  const cardLabel = quiz.isTiebreaker ? 'Tiebreaker question' : `Question ${index + 1}`;
 
   return (
     <ScreenBackground>
@@ -73,15 +76,27 @@ export default function GameScreen() {
         </ScrollView>
       )}
 
-      {status === 'playing' && question && (
+      {status === 'playing' && quiz.loadingTiebreaker && (
+        <View style={styles.center}>
+          <Text style={styles.tieTitle}>
+            It’s a tie at {scores[0]} : {scores[1]}!
+          </Text>
+          <ActivityIndicator size="large" color={colors.accent} />
+          <Text style={styles.muted}>
+            Loading the tiebreaker: one more question for each team.
+          </Text>
+        </View>
+      )}
+
+      {status === 'playing' && !quiz.loadingTiebreaker && question && (
         <>
           {/* Scrolls only when a long question doesn't fit (small phones). */}
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.status}>
               <TeamScoreboard teams={teams} scores={scores} activeTeam={currentTeam} />
               <View style={styles.statusRow}>
-                <Text style={styles.statusLabel}>
-                  Question {index + 1} of {total}
+                <Text style={[styles.statusLabel, quiz.isTiebreaker && styles.tieLabel]}>
+                  {progressLabel}
                 </Text>
                 <View style={styles.pills}>
                   {question.category && <InfoPill label={question.category} />}
@@ -92,12 +107,15 @@ export default function GameScreen() {
             </View>
 
             <View style={styles.questionWrap}>
-              <View style={[styles.turn, { backgroundColor: teamColors[currentTeam] }]}>
-                <Text style={styles.turnText} numberOfLines={1}>
-                  {teams[currentTeam]}’s turn
-                </Text>
+              <View style={styles.turnRow}>
+                <View style={[styles.turn, { backgroundColor: teamColors[currentTeam] }]}>
+                  <Text style={styles.turnText} numberOfLines={1}>
+                    {teams[currentTeam]}’s turn
+                  </Text>
+                </View>
+                {quiz.isTiebreaker && <InfoPill label="Sudden death" color={colors.tiebreaker} />}
               </View>
-              <QuestionCard number={index + 1} text={question.text} />
+              <QuestionCard label={cardLabel} text={question.text} />
             </View>
 
             <View style={styles.answers}>
@@ -141,9 +159,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 24,
   },
+  tieTitle: { color: colors.text, fontSize: 26, fontWeight: '800', textAlign: 'center' },
+  tieLabel: { color: colors.tiebreaker, fontWeight: '800' },
+  turnRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
   turn: {
-    alignSelf: 'flex-start',
-    maxWidth: '100%',
+    flexShrink: 1,
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: radius.pill,

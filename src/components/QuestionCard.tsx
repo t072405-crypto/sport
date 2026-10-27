@@ -3,18 +3,19 @@ import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { colors } from '@/constants/theme';
 
 type Props = {
-  number: number;
+  /** Small label above the question, e.g. "Question 4". */
+  label: string;
   text: string;
 };
 
-export function QuestionCard({ number, text }: Props) {
+export function QuestionCard({ label, text }: Props) {
   const { width, height } = useWindowDimensions();
   // Smaller text on short or narrow phones so long questions still fit.
   const compact = height < 700 || width < 360;
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Question {number}</Text>
+      <Text style={styles.label}>{label}</Text>
       <Text style={[styles.text, compact && styles.textCompact]}>{text}</Text>
     </View>
   );

@@ -3,18 +3,26 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { TeamScoreboard } from '@/components/TeamScoreboard';
-import { colors, teamColors } from '@/constants/theme';
+import { colors, radius, teamColors } from '@/constants/theme';
 import { pointsLabel, winnerOf, type Scores, type Teams } from '@/data/teams';
 
 type Props = {
   teams: Teams;
   scores: Scores;
+  wonInTiebreaker?: boolean;
   onPlayAgain: () => void;
   onChangeDifficulty: () => void;
   onNewTeams: () => void;
 };
 
-export function ResultCard({ teams, scores, onPlayAgain, onChangeDifficulty, onNewTeams }: Props) {
+export function ResultCard({
+  teams,
+  scores,
+  wonInTiebreaker = false,
+  onPlayAgain,
+  onChangeDifficulty,
+  onNewTeams,
+}: Props) {
   const winner = winnerOf(scores);
   const color = winner === null ? colors.accent : teamColors[winner];
 
@@ -39,6 +47,11 @@ export function ResultCard({ teams, scores, onPlayAgain, onChangeDifficulty, onN
           <Text style={styles.points}>
             won with <Text style={styles.pointsValue}>{pointsLabel(scores[winner])}</Text>
           </Text>
+          {wonInTiebreaker && (
+            <View style={styles.tiebreaker}>
+              <Text style={styles.tiebreakerText}>Decided in the tiebreaker</Text>
+            </View>
+          )}
         </>
       )}
 
@@ -83,6 +96,14 @@ const styles = StyleSheet.create({
   headline: { color: colors.text, fontSize: 36, fontWeight: '800', textAlign: 'center' },
   points: { color: colors.textMuted, fontSize: 18, textAlign: 'center' },
   pointsValue: { color: colors.text, fontWeight: '800' },
+  tiebreaker: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.tiebreaker,
+  },
+  tiebreakerText: { color: colors.tiebreaker, fontSize: 13, fontWeight: '700' },
   scoreboard: { alignSelf: 'stretch', marginTop: 12 },
   buttons: { alignSelf: 'stretch', gap: 10, marginTop: 12 },
 });

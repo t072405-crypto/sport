@@ -3,8 +3,9 @@
 A two-team mobile sports trivia game built with Expo (React Native), TypeScript and Expo Router.
 Two teams enter their names, pick a difficulty (Easy, Medium or Hard), and take turns answering
 10 fresh multiple-choice Sports questions from [OpenTDB](https://opentdb.com) — 5 each. A correct
-answer scores a point for the team whose turn it is; the final page shows the winning team and
-the points it earned (or a draw).
+answer scores a point for the team whose turn it is. If the teams are tied after 10 questions, a
+sudden-death tiebreaker gives each team one more question per round until one round ends with
+different scores. The final page shows the winning team and the points it earned.
 
 ## Run
 

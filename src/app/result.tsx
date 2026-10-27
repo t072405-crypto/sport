@@ -13,6 +13,8 @@ type Params = {
   team2?: string;
   score1?: string;
   score2?: string;
+  /** "1" when the game was decided by a tiebreaker. */
+  tiebreaker?: string;
 };
 
 export default function ResultScreen() {
@@ -28,6 +30,7 @@ export default function ResultScreen() {
         <ResultCard
           teams={[team1, team2]}
           scores={scores}
+          wonInTiebreaker={params.tiebreaker === '1'}
           // A fresh game screen loads new questions for the same teams.
           onPlayAgain={() => router.replace({ pathname: '/game', params: { difficulty, team1, team2 } })}
           // The game screen was replaced by this one, so back is the difficulty screen.
