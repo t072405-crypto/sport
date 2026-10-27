@@ -7,18 +7,19 @@ type Props = {
   score: number;
   total: number;
   onPlayAgain: () => void;
+  onChangeDifficulty?: () => void;
 };
 
 function messageFor(score: number, total: number) {
   const ratio = score / total;
-  if (ratio === 1) return "Perfect score! You're a true football expert.";
-  if (ratio >= 0.8) return 'Great job! You really know your football.';
+  if (ratio === 1) return "Perfect score! You're a true trivia expert.";
+  if (ratio >= 0.8) return 'Great job! You really know your stuff.';
   if (ratio >= 0.6) return 'Not bad! A little more practice and you will nail it.';
-  if (ratio >= 0.2) return 'Keep going! Every fan starts somewhere.';
+  if (ratio >= 0.2) return 'Keep going! Every expert starts somewhere.';
   return 'Tough round. Give it another shot!';
 }
 
-export function ResultCard({ score, total, onPlayAgain }: Props) {
+export function ResultCard({ score, total, onPlayAgain, onChangeDifficulty }: Props) {
   return (
     <View style={styles.card}>
       <Ionicons name="trophy" size={48} color={colors.accent} />
@@ -33,6 +34,14 @@ export function ResultCard({ score, total, onPlayAgain }: Props) {
         style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
         <Text style={styles.buttonText}>Play again</Text>
       </Pressable>
+      {onChangeDifficulty && (
+        <Pressable
+          accessibilityRole="button"
+          onPress={onChangeDifficulty}
+          style={({ pressed }) => [styles.button, styles.secondary, pressed && styles.pressed]}>
+          <Text style={styles.buttonText}>Change difficulty</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -58,6 +67,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: radius.card,
     backgroundColor: colors.accent,
+  },
+  secondary: {
+    marginTop: 0,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
   },
   pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
   buttonText: { color: colors.text, fontSize: 17, fontWeight: '700' },

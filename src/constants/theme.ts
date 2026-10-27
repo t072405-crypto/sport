@@ -1,3 +1,5 @@
+import type { Difficulty } from '@/data/questions';
+
 export const colors = {
   backgroundTop: '#0A0F1F',
   backgroundBottom: '#111A33',
@@ -12,6 +14,12 @@ export const colors = {
   wrongBg: '#3D1B22',
   track: '#1F2A4D',
 } as const;
+
+export const difficultyColors: Record<Difficulty, string> = {
+  easy: '#1FA463',
+  medium: '#F5A524',
+  hard: '#E5484D',
+};
 
 export const radius = {
   card: 14,
