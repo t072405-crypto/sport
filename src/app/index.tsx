@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader } from '@/components/AppHeader';
 import { DifficultyButton } from '@/components/DifficultyButton';
@@ -17,29 +17,32 @@ export default function DifficultyScreen() {
     <ScreenBackground>
       <AppHeader />
 
-      <View style={styles.intro}>
-        <Text style={styles.label}>New game</Text>
-        <Text style={styles.heading}>Choose your difficulty</Text>
-        <Text style={styles.subtitle}>
-          {QUESTIONS_PER_GAME} fresh sports questions every game.
-        </Text>
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.intro}>
+          <Text style={styles.label}>New game</Text>
+          <Text style={styles.heading}>Choose your difficulty</Text>
+          <Text style={styles.subtitle}>
+            {QUESTIONS_PER_GAME} fresh sports questions every game.
+          </Text>
+        </View>
 
-      <View style={styles.buttons}>
-        {DIFFICULTIES.map((difficulty) => (
-          <DifficultyButton
-            key={difficulty}
-            difficulty={difficulty}
-            onPress={() => startGame(difficulty)}
-          />
-        ))}
-      </View>
+        <View style={styles.buttons}>
+          {DIFFICULTIES.map((difficulty) => (
+            <DifficultyButton
+              key={difficulty}
+              difficulty={difficulty}
+              onPress={() => startGame(difficulty)}
+            />
+          ))}
+        </View>
+      </ScrollView>
     </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  intro: { flex: 1, justifyContent: 'center', gap: 10, paddingHorizontal: 20 },
+  scrollContent: { flexGrow: 1 },
+  intro: { flexGrow: 1, justifyContent: 'center', gap: 10, paddingHorizontal: 20, paddingVertical: 24 },
   label: {
     color: colors.accent,
     fontSize: 14,

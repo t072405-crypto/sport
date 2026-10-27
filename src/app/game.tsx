@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AnswerButton, type AnswerState } from '@/components/AnswerButton';
 import { AppHeader } from '@/components/AppHeader';
@@ -39,7 +39,7 @@ export default function GameScreen() {
       )}
 
       {status === 'error' && (
-        <View style={styles.center}>
+        <ScrollView contentContainerStyle={styles.center}>
           <View style={styles.errorCard}>
             <Text style={styles.errorTitle}>Couldn’t load questions</Text>
             <Text style={styles.muted}>{quiz.error}</Text>
@@ -56,50 +56,53 @@ export default function GameScreen() {
               <Text style={styles.buttonText}>Play offline questions</Text>
             </Pressable>
           </View>
-        </View>
+        </ScrollView>
       )}
 
       {status === 'finished' && (
-        <View style={styles.center}>
+        <ScrollView contentContainerStyle={styles.center}>
           <ResultCard
             score={score}
             total={total}
             onPlayAgain={quiz.playAgain}
             onChangeDifficulty={() => router.back()}
           />
-        </View>
+        </ScrollView>
       )}
 
       {status === 'playing' && question && (
         <>
-          <View style={styles.status}>
-            <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>
-                Question {index + 1} of {total}
-              </Text>
-              <ScoreBadge score={score} />
+          {/* Scrolls only when a long question doesn't fit (small phones). */}
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={styles.status}>
+              <View style={styles.statusRow}>
+                <Text style={styles.statusLabel}>
+                  Question {index + 1} of {total}
+                </Text>
+                <ScoreBadge score={score} />
+              </View>
+              <ProgressBar progress={(index + (answered ? 1 : 0)) / total} />
+              <View style={styles.pills}>
+                {question.category && <InfoPill label={question.category} />}
+                <InfoPill label={difficulty} color={difficultyColors[difficulty]} />
+              </View>
             </View>
-            <ProgressBar progress={(index + (answered ? 1 : 0)) / total} />
-            <View style={styles.pills}>
-              {question.category && <InfoPill label={question.category} />}
-              <InfoPill label={difficulty} color={difficultyColors[difficulty]} />
+
+            <View style={styles.questionWrap}>
+              <QuestionCard number={index + 1} text={question.text} />
             </View>
-          </View>
 
-          <View style={styles.questionWrap}>
-            <QuestionCard number={index + 1} text={question.text} />
-          </View>
-
-          <View style={styles.answers}>
-            {question.answers.map((label, i) => (
-              <AnswerButton
-                key={`${question.id}-${i}`}
-                label={label}
-                state={stateFor(i)}
-                onPress={() => quiz.select(i)}
-              />
-            ))}
-          </View>
+            <View style={styles.answers}>
+              {question.answers.map((label, i) => (
+                <AnswerButton
+                  key={`${question.id}-${i}`}
+                  label={label}
+                  state={stateFor(i)}
+                  onPress={() => quiz.select(i)}
+                />
+              ))}
+            </View>
+          </ScrollView>
 
           {answered && <NextButton onPress={quiz.next} />}
         </>
@@ -109,13 +112,21 @@ export default function GameScreen() {
 }
 
 const styles = StyleSheet.create({
-  center: { flex: 1, justifyContent: 'center', alignItems: 'stretch', gap: 16, paddingHorizontal: 20 },
+  center: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'stretch',
+    gap: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+  scrollContent: { flexGrow: 1 },
   muted: { color: colors.textMuted, fontSize: 16, textAlign: 'center', lineHeight: 24 },
   status: { gap: 12, paddingHorizontal: 20, paddingTop: 20 },
   statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   statusLabel: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
   pills: { flexDirection: 'row', gap: 8 },
-  questionWrap: { flex: 1, justifyContent: 'center', paddingHorizontal: 20 },
+  questionWrap: { flexGrow: 1, justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 24 },
   // Bottom padding leaves room for the floating Next button.
   answers: { gap: 12, paddingHorizontal: 20, paddingBottom: 100 },
   errorCard: {

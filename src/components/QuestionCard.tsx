@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { colors } from '@/constants/theme';
 
@@ -8,10 +8,14 @@ type Props = {
 };
 
 export function QuestionCard({ number, text }: Props) {
+  const { width, height } = useWindowDimensions();
+  // Smaller text on short or narrow phones so long questions still fit.
+  const compact = height < 700 || width < 360;
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Question {number}</Text>
-      <Text style={styles.text}>{text}</Text>
+      <Text style={[styles.text, compact && styles.textCompact]}>{text}</Text>
     </View>
   );
 }
@@ -31,4 +35,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     lineHeight: 36,
   },
+  textCompact: { fontSize: 22, lineHeight: 29 },
 });
