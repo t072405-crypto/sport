@@ -41,13 +41,25 @@ async function getJson<T>(url: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-async function getQuestions(url: string): Promise<QuestionsResponse> {
-  try {
-    return await getJson<QuestionsResponse>(url);
-  } catch (e) {
-    if (e instanceof RateLimitError) return { response_code: ResponseCode.RateLimit, results: [] };
-    throw e;
-  }
+// Question requests run one at a time, at least RATE_LIMIT_MS apart, so
+// overlapping loads (e.g. a quick "Play again") don't trip the rate limit.
+let requestQueue: Promise<unknown> = Promise.resolve();
+let lastRequestAt = 0;
+
+function getQuestions(url: string): Promise<QuestionsResponse> {
+  const request = requestQueue.then(async () => {
+    const delay = lastRequestAt + RATE_LIMIT_MS - Date.now();
+    if (delay > 0) await wait(delay);
+    lastRequestAt = Date.now();
+    try {
+      return await getJson<QuestionsResponse>(url);
+    } catch (e) {
+      if (e instanceof RateLimitError) return { response_code: ResponseCode.RateLimit, results: [] };
+      throw e;
+    }
+  });
+  requestQueue = request.catch(() => undefined);
+  return request;
 }
 
 function getToken() {
@@ -120,7 +132,7 @@ export async function fetchQuestions({ amount, difficulty, categoryId }: FetchOp
         await resetToken(token);
         break;
       case ResponseCode.RateLimit:
-        await wait(RATE_LIMIT_MS);
+        // Retry; the request queue already waits RATE_LIMIT_MS between requests.
         break;
       default:
         throw new Error(`OpenTDB error (code ${data.response_code})`);

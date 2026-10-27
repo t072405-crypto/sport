@@ -8,7 +8,6 @@ import { NextButton } from '@/components/NextButton';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ProgressBar } from '@/components/ProgressBar';
 import { QuestionCard } from '@/components/QuestionCard';
-import { ResultCard } from '@/components/ResultCard';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { TeamScoreboard } from '@/components/TeamScoreboard';
 import { colors, difficultyColors, radius, teamColors } from '@/constants/theme';
@@ -30,6 +29,24 @@ export default function GameScreen() {
     return 'disabled';
   }
 
+  function handleNext() {
+    if (!quiz.isLastQuestion) {
+      quiz.next();
+      return;
+    }
+    // Replace the game so "back" from the result goes to the difficulty screen.
+    router.replace({
+      pathname: '/result',
+      params: {
+        difficulty,
+        team1: teams[0],
+        team2: teams[1],
+        score1: scores[0],
+        score2: scores[1],
+      },
+    });
+  }
+
   return (
     <ScreenBackground>
       <AppHeader onBack={() => router.back()} />
@@ -46,25 +63,13 @@ export default function GameScreen() {
           <View style={styles.errorCard}>
             <Text style={styles.errorTitle}>Couldn’t load questions</Text>
             <Text style={styles.muted}>{quiz.error}</Text>
-            <PrimaryButton label="Try again" onPress={quiz.playAgain} />
+            <PrimaryButton label="Try again" onPress={quiz.retry} />
             <PrimaryButton
               label="Play offline questions"
               variant="secondary"
               onPress={quiz.playOffline}
             />
           </View>
-        </ScrollView>
-      )}
-
-      {status === 'finished' && (
-        <ScrollView contentContainerStyle={styles.center}>
-          <ResultCard
-            teams={teams}
-            scores={scores}
-            onPlayAgain={quiz.playAgain}
-            onChangeDifficulty={() => router.back()}
-            onNewTeams={() => router.dismissTo('/')}
-          />
         </ScrollView>
       )}
 
@@ -107,7 +112,7 @@ export default function GameScreen() {
             </View>
           </ScrollView>
 
-          {answered && <NextButton onPress={quiz.next} />}
+          {answered && <NextButton onPress={handleNext} />}
         </>
       )}
     </ScreenBackground>

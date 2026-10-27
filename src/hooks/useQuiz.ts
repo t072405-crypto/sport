@@ -8,7 +8,7 @@ export const QUESTIONS_PER_GAME = 10;
 /** OpenTDB category 21: Sports. */
 const SPORTS_CATEGORY_ID = 21;
 
-export type QuizStatus = 'loading' | 'error' | 'playing' | 'finished';
+export type QuizStatus = 'loading' | 'error' | 'playing';
 
 export function useQuiz(difficulty: Difficulty) {
   const [status, setStatus] = useState<QuizStatus>('loading');
@@ -24,6 +24,7 @@ export function useQuiz(difficulty: Difficulty) {
   const total = questions.length;
   const question = questions[index] as Question | undefined;
   const answered = selected !== null;
+  const isLastQuestion = total > 0 && index === total - 1;
   const currentTeam = teamForQuestion(index);
 
   const resetProgress = useCallback(() => {
@@ -93,15 +94,12 @@ export function useQuiz(difficulty: Difficulty) {
     [selected, question, currentTeam],
   );
 
+  /** Moves to the next question. After the last one, the screen shows the result page instead. */
   const next = useCallback(() => {
-    if (selected === null) return;
-    if (index === total - 1) {
-      setStatus('finished');
-    } else {
-      setIndex((i) => i + 1);
-      setSelected(null);
-    }
-  }, [selected, index, total]);
+    if (selected === null || isLastQuestion) return;
+    setIndex((i) => i + 1);
+    setSelected(null);
+  }, [selected, isLastQuestion]);
 
   return {
     status,
@@ -114,9 +112,11 @@ export function useQuiz(difficulty: Difficulty) {
     currentTeam,
     selected,
     answered,
+    isLastQuestion,
     select,
     next,
-    playAgain: start,
+    /** Reloads questions after a failed load. */
+    retry: start,
     playOffline,
   };
 }

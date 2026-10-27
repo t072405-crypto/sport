@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { TeamScoreboard } from '@/components/TeamScoreboard';
 import { colors, teamColors } from '@/constants/theme';
-import type { Scores, Teams } from '@/data/teams';
+import { pointsLabel, winnerOf, type Scores, type Teams } from '@/data/teams';
 
 type Props = {
   teams: Teams;
@@ -15,32 +15,37 @@ type Props = {
 };
 
 export function ResultCard({ teams, scores, onPlayAgain, onChangeDifficulty, onNewTeams }: Props) {
-  const [first, second] = scores;
-  const winner = first === second ? null : first > second ? 0 : 1;
+  const winner = winnerOf(scores);
+  const color = winner === null ? colors.accent : teamColors[winner];
 
   return (
     <View style={styles.card}>
-      <Ionicons
-        name={winner === null ? 'ribbon' : 'trophy'}
-        size={48}
-        color={winner === null ? colors.accent : teamColors[winner]}
-      />
-      <Text style={styles.heading}>Final score</Text>
-      <Text style={styles.score}>
-        {first} : {second}
-      </Text>
-      <Text style={styles.message}>
-        {winner === null ? (
-          "It's a draw!"
-        ) : (
-          <>
-            <Text style={{ color: teamColors[winner] }}>{teams[winner]}</Text> wins!
-          </>
-        )}
-      </Text>
+      <View style={[styles.badge, { backgroundColor: color }]}>
+        <Ionicons name={winner === null ? 'ribbon' : 'trophy'} size={44} color={colors.text} />
+      </View>
+
+      {winner === null ? (
+        <>
+          <Text style={styles.label}>Final result</Text>
+          <Text style={styles.headline}>It’s a draw!</Text>
+          <Text style={styles.points}>Both teams earned {pointsLabel(scores[0])}</Text>
+        </>
+      ) : (
+        <>
+          <Text style={[styles.label, { color }]}>Winner</Text>
+          <Text style={[styles.headline, { color }]} numberOfLines={2}>
+            {teams[winner]}
+          </Text>
+          <Text style={styles.points}>
+            won with <Text style={styles.pointsValue}>{pointsLabel(scores[winner])}</Text>
+          </Text>
+        </>
+      )}
+
       <View style={styles.scoreboard}>
         <TeamScoreboard teams={teams} scores={scores} activeTeam={winner ?? undefined} />
       </View>
+
       <View style={styles.buttons}>
         <PrimaryButton label="Play again" onPress={onPlayAgain} />
         <PrimaryButton label="Change difficulty" variant="secondary" onPress={onChangeDifficulty} />
@@ -53,16 +58,31 @@ export function ResultCard({ teams, scores, onPlayAgain, onChangeDifficulty, onN
 const styles = StyleSheet.create({
   card: {
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     padding: 24,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     backgroundColor: colors.card,
   },
-  heading: { color: colors.textMuted, fontSize: 16, fontWeight: '600' },
-  score: { color: colors.text, fontSize: 56, fontWeight: '800' },
-  message: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center' },
-  scoreboard: { alignSelf: 'stretch' },
-  buttons: { alignSelf: 'stretch', gap: 10, marginTop: 8 },
+  badge: {
+    width: 88,
+    height: 88,
+    marginBottom: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 44,
+  },
+  label: {
+    color: colors.accent,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  headline: { color: colors.text, fontSize: 36, fontWeight: '800', textAlign: 'center' },
+  points: { color: colors.textMuted, fontSize: 18, textAlign: 'center' },
+  pointsValue: { color: colors.text, fontWeight: '800' },
+  scoreboard: { alignSelf: 'stretch', marginTop: 12 },
+  buttons: { alignSelf: 'stretch', gap: 10, marginTop: 12 },
 });
