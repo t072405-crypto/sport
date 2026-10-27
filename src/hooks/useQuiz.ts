@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { fetchQuestions } from '@/api/opentdb';
 import { OFFLINE_QUESTIONS, type Difficulty, type Question } from '@/data/questions';
+import { teamForQuestion, type Scores } from '@/data/teams';
 
 export const QUESTIONS_PER_GAME = 10;
 /** OpenTDB category 21: Sports. */
@@ -14,7 +15,7 @@ export function useQuiz(difficulty: Difficulty) {
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [index, setIndex] = useState(0);
-  const [score, setScore] = useState(0);
+  const [scores, setScores] = useState<Scores>([0, 0]);
   const [selected, setSelected] = useState<number | null>(null);
 
   // Ignores responses from an older load or after unmount.
@@ -23,10 +24,11 @@ export function useQuiz(difficulty: Difficulty) {
   const total = questions.length;
   const question = questions[index] as Question | undefined;
   const answered = selected !== null;
+  const currentTeam = teamForQuestion(index);
 
   const resetProgress = useCallback(() => {
     setIndex(0);
-    setScore(0);
+    setScores([0, 0]);
     setSelected(null);
   }, []);
 
@@ -81,9 +83,14 @@ export function useQuiz(difficulty: Difficulty) {
     (answerIndex: number) => {
       if (!question || selected !== null) return;
       setSelected(answerIndex);
-      if (answerIndex === question.correctIndex) setScore((s) => s + 1);
+      if (answerIndex === question.correctIndex) {
+        // Only the team whose turn it is can score.
+        setScores(([first, second]) =>
+          currentTeam === 0 ? [first + 1, second] : [first, second + 1],
+        );
+      }
     },
-    [selected, question],
+    [selected, question, currentTeam],
   );
 
   const next = useCallback(() => {
@@ -103,7 +110,8 @@ export function useQuiz(difficulty: Difficulty) {
     question,
     index,
     total,
-    score,
+    scores,
+    currentTeam,
     selected,
     answered,
     select,

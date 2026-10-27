@@ -1,47 +1,51 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius } from '@/constants/theme';
+import { PrimaryButton } from '@/components/PrimaryButton';
+import { TeamScoreboard } from '@/components/TeamScoreboard';
+import { colors, teamColors } from '@/constants/theme';
+import type { Scores, Teams } from '@/data/teams';
 
 type Props = {
-  score: number;
-  total: number;
+  teams: Teams;
+  scores: Scores;
   onPlayAgain: () => void;
-  onChangeDifficulty?: () => void;
+  onChangeDifficulty: () => void;
+  onNewTeams: () => void;
 };
 
-function messageFor(score: number, total: number) {
-  const ratio = score / total;
-  if (ratio === 1) return "Perfect score! You're a true trivia expert.";
-  if (ratio >= 0.8) return 'Great job! You really know your stuff.';
-  if (ratio >= 0.6) return 'Not bad! A little more practice and you will nail it.';
-  if (ratio >= 0.2) return 'Keep going! Every expert starts somewhere.';
-  return 'Tough round. Give it another shot!';
-}
+export function ResultCard({ teams, scores, onPlayAgain, onChangeDifficulty, onNewTeams }: Props) {
+  const [first, second] = scores;
+  const winner = first === second ? null : first > second ? 0 : 1;
 
-export function ResultCard({ score, total, onPlayAgain, onChangeDifficulty }: Props) {
   return (
     <View style={styles.card}>
-      <Ionicons name="trophy" size={48} color={colors.accent} />
+      <Ionicons
+        name={winner === null ? 'ribbon' : 'trophy'}
+        size={48}
+        color={winner === null ? colors.accent : teamColors[winner]}
+      />
       <Text style={styles.heading}>Final score</Text>
       <Text style={styles.score}>
-        {score} / {total}
+        {first} : {second}
       </Text>
-      <Text style={styles.message}>{messageFor(score, total)}</Text>
-      <Pressable
-        accessibilityRole="button"
-        onPress={onPlayAgain}
-        style={({ pressed }) => [styles.button, pressed && styles.pressed]}>
-        <Text style={styles.buttonText}>Play again</Text>
-      </Pressable>
-      {onChangeDifficulty && (
-        <Pressable
-          accessibilityRole="button"
-          onPress={onChangeDifficulty}
-          style={({ pressed }) => [styles.button, styles.secondary, pressed && styles.pressed]}>
-          <Text style={styles.buttonText}>Change difficulty</Text>
-        </Pressable>
-      )}
+      <Text style={styles.message}>
+        {winner === null ? (
+          "It's a draw!"
+        ) : (
+          <>
+            <Text style={{ color: teamColors[winner] }}>{teams[winner]}</Text> wins!
+          </>
+        )}
+      </Text>
+      <View style={styles.scoreboard}>
+        <TeamScoreboard teams={teams} scores={scores} activeTeam={winner ?? undefined} />
+      </View>
+      <View style={styles.buttons}>
+        <PrimaryButton label="Play again" onPress={onPlayAgain} />
+        <PrimaryButton label="Change difficulty" variant="secondary" onPress={onChangeDifficulty} />
+        <PrimaryButton label="New teams" variant="secondary" onPress={onNewTeams} />
+      </View>
     </View>
   );
 }
@@ -50,7 +54,7 @@ const styles = StyleSheet.create({
   card: {
     alignItems: 'center',
     gap: 12,
-    padding: 28,
+    padding: 24,
     borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.cardBorder,
@@ -58,22 +62,7 @@ const styles = StyleSheet.create({
   },
   heading: { color: colors.textMuted, fontSize: 16, fontWeight: '600' },
   score: { color: colors.text, fontSize: 56, fontWeight: '800' },
-  message: { color: colors.text, fontSize: 18, textAlign: 'center', lineHeight: 26 },
-  button: {
-    alignSelf: 'stretch',
-    minHeight: 56,
-    marginTop: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.card,
-    backgroundColor: colors.accent,
-  },
-  secondary: {
-    marginTop: 0,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: colors.cardBorder,
-  },
-  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
-  buttonText: { color: colors.text, fontSize: 17, fontWeight: '700' },
+  message: { color: colors.text, fontSize: 22, fontWeight: '800', textAlign: 'center' },
+  scoreboard: { alignSelf: 'stretch' },
+  buttons: { alignSelf: 'stretch', gap: 10, marginTop: 8 },
 });

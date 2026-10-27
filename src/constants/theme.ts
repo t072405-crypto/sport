@@ -21,6 +21,9 @@ export const difficultyColors: Record<Difficulty, string> = {
   hard: '#E5484D',
 };
 
+/** Team 1 is blue, team 2 is red. */
+export const teamColors = ['#2F6BFF', '#FF4D6D'] as const;
+
 export const radius = {
   card: 14,
   pill: 999,
