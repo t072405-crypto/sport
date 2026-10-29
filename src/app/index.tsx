@@ -24,7 +24,7 @@ export default function IntroScreen() {
 
   function next() {
     router.push({
-      pathname: '/difficulty',
+      pathname: '/category',
       params: { team1: teamName(team1, 0), team2: teamName(team2, 1) },
     });
   }

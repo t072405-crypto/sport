@@ -1,8 +1,10 @@
 # Sports Quiz
 
 A two-team mobile sports trivia game built with Expo (React Native), TypeScript and Expo Router.
-Two teams enter their names, pick a difficulty (Easy, Medium or Hard), and take turns answering
-10 fresh multiple-choice Sports questions written by AI through [OpenRouter](https://openrouter.ai) — 5 each. A correct
+Two teams enter their names, pick a category (a preset such as Football or Formula 1, or any topic
+they type, e.g. "NBA in the 90s"), pick a difficulty (Easy, Medium or Hard), and take turns answering
+10 fresh multiple-choice questions on that category, written by AI through
+[OpenRouter](https://openrouter.ai) — 5 each. A correct
 answer scores a point for the team whose turn it is. If the teams are tied after 10 questions, a
 sudden-death tiebreaker gives each team one more question per round until one round ends with
 different scores. The final page shows the winning team and the points it earned.
@@ -28,15 +30,18 @@ Scan the QR code with the Expo Go app (Android) or the Camera app (iOS).
 ## Structure
 
 - `src/app/index.tsx` – intro screen: the two team names (VS)
+- `src/app/category.tsx` – category screen: presets or a custom topic
 - `src/app/difficulty.tsx` – difficulty screen (Easy / Medium / Hard)
 - `src/app/game.tsx` – game screen (loading, error, playing)
 - `src/app/result.tsx` – final page: winning team and its points, or a draw
-- `src/app/api/questions+api.ts` – server API route: `POST /api/questions { amount, difficulty, avoid }`
+- `src/app/api/questions+api.ts` – server API route: `POST /api/questions { amount, difficulty, category, avoid }`
 - `src/server/generateQuestions.ts` – server-only OpenRouter call: prompt, JSON schema, validation, shuffling
 - `src/api/questions.ts` – app client for the API route; remembers recent questions to avoid repeats
 - `src/hooks/useQuiz.ts` – game state (load questions, turns, per-team scores, play again)
-- `src/components/` – AppHeader, ScreenBackground, TeamNameInput, TeamScoreboard, DifficultyButton,
-  InfoPill, QuestionCard, AnswerButton, ProgressBar, NextButton, PrimaryButton, ResultCard
+- `src/components/` – AppHeader, ScreenBackground, TeamNameInput, TeamScoreboard, CategoryButton,
+  DifficultyButton, InfoPill, QuestionCard, AnswerButton, ProgressBar, NextButton, PrimaryButton,
+  ResultCard
+- `src/data/categories.ts` – preset categories and custom-topic validation (shared by app and server)
 - `src/data/teams.ts` – team names, defaults and turn order
 - `src/data/questions.ts` – `Question` / `Difficulty` types and offline fallback questions
 - `src/constants/theme.ts` – colors and radii

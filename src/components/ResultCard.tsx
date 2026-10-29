@@ -9,18 +9,21 @@ import { pointsLabel, winnerOf, type Scores, type Teams } from '@/data/teams';
 type Props = {
   teams: Teams;
   scores: Scores;
+  /** What was played, e.g. "Football · medium". */
+  details?: string;
   wonInTiebreaker?: boolean;
   onPlayAgain: () => void;
-  onChangeDifficulty: () => void;
+  onChangeCategory: () => void;
   onNewTeams: () => void;
 };
 
 export function ResultCard({
   teams,
   scores,
+  details,
   wonInTiebreaker = false,
   onPlayAgain,
-  onChangeDifficulty,
+  onChangeCategory,
   onNewTeams,
 }: Props) {
   const winner = winnerOf(scores);
@@ -58,10 +61,11 @@ export function ResultCard({
       <View style={styles.scoreboard}>
         <TeamScoreboard teams={teams} scores={scores} activeTeam={winner ?? undefined} />
       </View>
+      {details && <Text style={styles.details}>{details}</Text>}
 
       <View style={styles.buttons}>
         <PrimaryButton label="Play again" onPress={onPlayAgain} />
-        <PrimaryButton label="Change difficulty" variant="secondary" onPress={onChangeDifficulty} />
+        <PrimaryButton label="Change category" variant="secondary" onPress={onChangeCategory} />
         <PrimaryButton label="New teams" variant="secondary" onPress={onNewTeams} />
       </View>
     </View>
@@ -105,5 +109,12 @@ const styles = StyleSheet.create({
   },
   tiebreakerText: { color: colors.tiebreaker, fontSize: 13, fontWeight: '700' },
   scoreboard: { alignSelf: 'stretch', marginTop: 12 },
+  details: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   buttons: { alignSelf: 'stretch', gap: 10, marginTop: 12 },
 });

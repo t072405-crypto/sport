@@ -13,9 +13,15 @@ const recentQuestions: string[] = [];
 type FetchOptions = {
   amount: number;
   difficulty: Difficulty;
+  /** Preset category id or a custom topic (Category.id). */
+  category: string;
 };
 
-export async function fetchQuestions({ amount, difficulty }: FetchOptions): Promise<Question[]> {
+export async function fetchQuestions({
+  amount,
+  difficulty,
+  category,
+}: FetchOptions): Promise<Question[]> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   let res: Response;
@@ -24,7 +30,7 @@ export async function fetchQuestions({ amount, difficulty }: FetchOptions): Prom
       method: 'POST',
       signal: controller.signal,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amount, difficulty, avoid: recentQuestions }),
+      body: JSON.stringify({ amount, difficulty, category, avoid: recentQuestions }),
     });
   } catch {
     throw new Error(

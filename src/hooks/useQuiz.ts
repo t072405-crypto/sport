@@ -16,7 +16,8 @@ function pickOffline(count: number): Question[] {
   return [...OFFLINE_QUESTIONS].sort(() => Math.random() - 0.5).slice(0, count);
 }
 
-export function useQuiz(difficulty: Difficulty) {
+/** `category` is a Category id: a preset like "football" or a custom topic. */
+export function useQuiz(difficulty: Difficulty, category: string) {
   const [status, setStatus] = useState<QuizStatus>('loading');
   const [error, setError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -52,6 +53,7 @@ export function useQuiz(difficulty: Difficulty) {
         const next = await fetchQuestions({
           amount: QUESTIONS_PER_GAME,
           difficulty,
+          category,
         });
         if (id !== requestId.current) return;
         setQuestions(next);
@@ -62,7 +64,7 @@ export function useQuiz(difficulty: Difficulty) {
         setStatus('error');
       }
     },
-    [difficulty],
+    [difficulty, category],
   );
 
   /** Starts a new game with fresh questions. */
@@ -114,6 +116,7 @@ export function useQuiz(difficulty: Difficulty) {
       extra = await fetchQuestions({
         amount: TIEBREAKER_ROUND_SIZE,
         difficulty,
+        category,
       });
     } catch {
       // Never leave a tie unresolved: fall back to offline questions.
@@ -128,7 +131,7 @@ export function useQuiz(difficulty: Difficulty) {
     setIndex((i) => i + 1);
     setSelected(null);
     setLoadingTiebreaker(false);
-  }, [difficulty]);
+  }, [difficulty, category]);
 
   /**
    * Moves to the next question. At the end of the questions, a tie starts a

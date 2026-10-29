@@ -5,16 +5,21 @@ import { AppHeader } from '@/components/AppHeader';
 import { DifficultyButton } from '@/components/DifficultyButton';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { colors, teamColors } from '@/constants/theme';
+import { categoryFromParam } from '@/data/categories';
 import { DIFFICULTIES, type Difficulty } from '@/data/questions';
 import { teamsFromParams } from '@/data/teams';
 import { QUESTIONS_PER_GAME } from '@/hooks/useQuiz';
 
 export default function DifficultyScreen() {
-  const params = useLocalSearchParams<{ team1?: string; team2?: string }>();
+  const params = useLocalSearchParams<{ team1?: string; team2?: string; category?: string }>();
   const [team1, team2] = teamsFromParams(params);
+  const category = categoryFromParam(params.category);
 
   function startGame(difficulty: Difficulty) {
-    router.push({ pathname: '/game', params: { difficulty, team1, team2 } });
+    router.push({
+      pathname: '/game',
+      params: { difficulty, team1, team2, category: category.id },
+    });
   }
 
   return (
@@ -30,7 +35,9 @@ export default function DifficultyScreen() {
           </Text>
           <Text style={styles.heading}>Choose your difficulty</Text>
           <Text style={styles.subtitle}>
-            {QUESTIONS_PER_GAME} fresh sports questions, {QUESTIONS_PER_GAME / 2} for each team.
+            {QUESTIONS_PER_GAME} fresh questions about{' '}
+            <Text style={styles.category}>{category.label}</Text>, {QUESTIONS_PER_GAME / 2} for
+            each team.
           </Text>
         </View>
 
@@ -52,6 +59,7 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1 },
   intro: { flexGrow: 1, justifyContent: 'center', gap: 10, paddingHorizontal: 20, paddingVertical: 24 },
   matchup: { fontSize: 16, fontWeight: '800', letterSpacing: 0.5 },
+  category: { color: colors.text, fontWeight: '800' },
   vs: { color: colors.textMuted },
   heading: { color: colors.text, fontSize: 30, fontWeight: '800', lineHeight: 38 },
   subtitle: { color: colors.textMuted, fontSize: 16, lineHeight: 24 },

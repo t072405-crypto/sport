@@ -11,15 +11,19 @@ import { QuestionCard } from '@/components/QuestionCard';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { TeamScoreboard } from '@/components/TeamScoreboard';
 import { colors, difficultyColors, radius, teamColors } from '@/constants/theme';
+import { categoryFromParam } from '@/data/categories';
 import { isDifficulty } from '@/data/questions';
 import { teamsFromParams } from '@/data/teams';
 import { QUESTIONS_PER_GAME, useQuiz } from '@/hooks/useQuiz';
 
+type Params = { difficulty?: string; team1?: string; team2?: string; category?: string };
+
 export default function GameScreen() {
-  const params = useLocalSearchParams<{ difficulty?: string; team1?: string; team2?: string }>();
+  const params = useLocalSearchParams<Params>();
   const difficulty = isDifficulty(params.difficulty) ? params.difficulty : 'easy';
   const teams = teamsFromParams(params);
-  const quiz = useQuiz(difficulty);
+  const category = categoryFromParam(params.category);
+  const quiz = useQuiz(difficulty, category.id);
   const { status, question, index, total, scores, currentTeam, selected, answered } = quiz;
 
   function stateFor(i: number): AnswerState {
@@ -36,6 +40,7 @@ export default function GameScreen() {
       pathname: '/result',
       params: {
         difficulty,
+        category: category.id,
         team1: teams[0],
         team2: teams[1],
         score1: scores[0],
@@ -57,7 +62,9 @@ export default function GameScreen() {
       {status === 'loading' && (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.accent} />
-          <Text style={styles.muted}>The AI is writing your questions…{'\n'}This takes about 10 seconds.</Text>
+          <Text style={styles.muted}>
+            The AI is writing your {category.label} questions…{'\n'}This takes about 10 seconds.
+          </Text>
         </View>
       )}
 
