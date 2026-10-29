@@ -1,82 +1,95 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useRef, useState, type ComponentRef } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import type { ComponentProps } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { AppHeader } from '@/components/AppHeader';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScreenBackground } from '@/components/ScreenBackground';
-import { TeamNameInput } from '@/components/TeamNameInput';
-import { colors, radius } from '@/constants/theme';
-import { teamName } from '@/data/teams';
+import { colors, radius, teamColors } from '@/constants/theme';
+import { QUESTIONS_PER_GAME } from '@/hooks/useQuiz';
 
-export default function IntroScreen() {
-  const [team1, setTeam1] = useState('');
-  const [team2, setTeam2] = useState('');
-  const team2Ref = useRef<ComponentRef<typeof TextInput>>(null);
+type IconName = ComponentProps<typeof Ionicons>['name'];
 
-  function next() {
-    router.push({
-      pathname: '/category',
-      params: { team1: teamName(team1, 0), team2: teamName(team2, 1) },
-    });
-  }
+const STEPS: { icon: IconName; text: string }[] = [
+  { icon: 'people', text: 'Register two teams' },
+  { icon: 'grid', text: 'Pick a category, or type your own topic' },
+  { icon: 'speedometer', text: 'Choose Easy, Medium or Hard' },
+  {
+    icon: 'swap-horizontal',
+    text: `Take turns: ${QUESTIONS_PER_GAME} questions, ${QUESTIONS_PER_GAME / 2} per team`,
+  },
+  { icon: 'flash', text: 'A tie? Sudden death decides the winner' },
+];
 
+export default function WelcomeScreen() {
   return (
     <ScreenBackground>
-      <AppHeader />
-
-      <KeyboardAvoidingView
-        style={styles.fill}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-          <View style={styles.intro}>
-            <Text style={styles.label}>Team battle</Text>
-            <Text style={styles.heading}>Who’s playing today?</Text>
-            <Text style={styles.subtitle}>
-              Two teams take turns answering. Each correct answer scores a point for the team whose
-              turn it is.
-            </Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.hero}>
+          <View style={styles.logo}>
+            <Ionicons name="football" size={56} color={colors.text} />
           </View>
+          <Text style={styles.title}>
+            Sports <Text style={styles.accent}>Quiz</Text>
+          </Text>
+          <Text style={styles.tagline}>
+            <Text style={{ color: teamColors[0] }}>Two teams.</Text>{' '}
+            <Text style={{ color: teamColors[1] }}>One quiz.</Text> Fresh questions every game.
+          </Text>
+        </View>
 
-          <View style={styles.teams}>
-            <TeamNameInput
-              team={0}
-              value={team1}
-              onChangeText={setTeam1}
-              onSubmitEditing={() => team2Ref.current?.focus()}
-            />
-            <View style={styles.vs}>
-              <Text style={styles.vsText}>VS</Text>
+        <View style={styles.steps}>
+          <Text style={styles.label}>How to play</Text>
+          {STEPS.map((step, i) => (
+            <View key={step.text} style={styles.step}>
+              <View style={styles.stepNumber}>
+                <Text style={styles.stepNumberText}>{i + 1}</Text>
+              </View>
+              <Ionicons name={step.icon} size={20} color={colors.accent} />
+              <Text style={styles.stepText}>{step.text}</Text>
             </View>
-            <TeamNameInput
-              ref={team2Ref}
-              team={1}
-              value={team2}
-              onChangeText={setTeam2}
-              onSubmitEditing={next}
-            />
-            <View style={styles.button}>
-              <PrimaryButton label="Continue" onPress={next} />
-            </View>
+          ))}
+        </View>
+
+        <View style={styles.footer}>
+          <View style={styles.powered}>
+            <Ionicons name="sparkles" size={14} color={colors.tiebreaker} />
+            <Text style={styles.poweredText}>Questions written by AI via OpenRouter</Text>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+          <PrimaryButton label="Start" onPress={() => router.push('/teams')} />
+        </View>
+      </ScrollView>
     </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  fill: { flex: 1 },
-  scrollContent: { flexGrow: 1 },
-  intro: { flexGrow: 1, justifyContent: 'center', gap: 10, paddingHorizontal: 20, paddingVertical: 24 },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 20, paddingVertical: 24, gap: 28 },
+  hero: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
+  logo: {
+    width: 112,
+    height: 112,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    backgroundColor: colors.accent,
+    shadowColor: colors.accent,
+    shadowOpacity: 0.5,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
+  title: { color: colors.text, fontSize: 40, fontWeight: '800' },
+  accent: { color: colors.accent },
+  tagline: { color: colors.textMuted, fontSize: 16, lineHeight: 24, textAlign: 'center' },
+  steps: {
+    gap: 12,
+    padding: 18,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.cardBorder,
+    backgroundColor: colors.card,
+  },
   label: {
     color: colors.accent,
     fontSize: 14,
@@ -84,20 +97,19 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  heading: { color: colors.text, fontSize: 30, fontWeight: '800', lineHeight: 38 },
-  subtitle: { color: colors.textMuted, fontSize: 16, lineHeight: 24 },
-  teams: { gap: 12, paddingHorizontal: 20, paddingBottom: 32 },
-  vs: {
-    alignSelf: 'center',
-    width: 48,
-    height: 48,
+  step: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stepNumber: {
+    width: 26,
+    height: 26,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.cardBorder,
-    backgroundColor: colors.backgroundBottom,
   },
-  vsText: { color: colors.text, fontSize: 16, fontWeight: '800' },
-  button: { marginTop: 8 },
+  stepNumberText: { color: colors.textMuted, fontSize: 13, fontWeight: '800' },
+  stepText: { flex: 1, color: colors.text, fontSize: 15, fontWeight: '600', lineHeight: 21 },
+  footer: { gap: 14 },
+  powered: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 },
+  poweredText: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
 });

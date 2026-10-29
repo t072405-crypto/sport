@@ -29,7 +29,8 @@ Scan the QR code with the Expo Go app (Android) or the Camera app (iOS).
 
 ## Structure
 
-- `src/app/index.tsx` – intro screen: the two team names (VS)
+- `src/app/index.tsx` – welcome screen: title, how to play, Start
+- `src/app/teams.tsx` – registration: the two team names (VS)
 - `src/app/category.tsx` – category screen: presets or a custom topic
 - `src/app/difficulty.tsx` – difficulty screen (Easy / Medium / Hard)
 - `src/app/game.tsx` – game screen (loading, error, playing)

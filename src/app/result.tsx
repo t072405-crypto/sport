@@ -45,7 +45,7 @@ export default function ResultScreen() {
           onChangeCategory={() =>
             router.dismissTo({ pathname: '/category', params: { team1, team2 } })
           }
-          onNewTeams={() => router.dismissTo('/')}
+          onNewTeams={() => router.dismissTo('/teams')}
         />
       </ScrollView>
     </ScreenBackground>
