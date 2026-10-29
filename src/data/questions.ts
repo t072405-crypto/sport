@@ -17,7 +17,7 @@ export type Question = {
   difficulty?: Difficulty;
 };
 
-// Offline fallback, used when OpenTDB can't be reached.
+// Offline fallback, used when the AI question service can't be reached.
 export const OFFLINE_QUESTIONS: Question[] = [
   {
     id: 1,

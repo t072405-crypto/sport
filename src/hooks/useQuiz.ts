@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { fetchQuestions } from '@/api/opentdb';
+import { fetchQuestions } from '@/api/questions';
 import { OFFLINE_QUESTIONS, type Difficulty, type Question } from '@/data/questions';
 import { teamForQuestion, type Scores } from '@/data/teams';
 
 export const QUESTIONS_PER_GAME = 10;
 /** A tiebreaker round gives each team one more question. */
 const TIEBREAKER_ROUND_SIZE = 2;
-/** OpenTDB category 21: Sports. */
-const SPORTS_CATEGORY_ID = 21;
 
 export type QuizStatus = 'loading' | 'error' | 'playing';
 /** What happened when the player tapped Next. */
@@ -54,7 +52,6 @@ export function useQuiz(difficulty: Difficulty) {
         const next = await fetchQuestions({
           amount: QUESTIONS_PER_GAME,
           difficulty,
-          categoryId: SPORTS_CATEGORY_ID,
         });
         if (id !== requestId.current) return;
         setQuestions(next);
@@ -117,7 +114,6 @@ export function useQuiz(difficulty: Difficulty) {
       extra = await fetchQuestions({
         amount: TIEBREAKER_ROUND_SIZE,
         difficulty,
-        categoryId: SPORTS_CATEGORY_ID,
       });
     } catch {
       // Never leave a tie unresolved: fall back to offline questions.

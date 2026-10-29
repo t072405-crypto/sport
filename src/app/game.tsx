@@ -57,7 +57,7 @@ export default function GameScreen() {
       {status === 'loading' && (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.accent} />
-          <Text style={styles.muted}>Loading new questions…</Text>
+          <Text style={styles.muted}>The AI is writing your questions…{'\n'}This takes about 10 seconds.</Text>
         </View>
       )}
 
