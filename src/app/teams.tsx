@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState, type ComponentRef } from 'react';
 import {
   KeyboardAvoidingView,
@@ -15,17 +15,21 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { TeamNameInput } from '@/components/TeamNameInput';
 import { colors, radius } from '@/constants/theme';
+import { categoryFromParam } from '@/data/categories';
 import { teamName } from '@/data/teams';
 
 export default function TeamsScreen() {
+  // Chosen on the welcome page, so registration goes straight to difficulty.
+  const params = useLocalSearchParams<{ category?: string }>();
+  const category = categoryFromParam(params.category);
   const [team1, setTeam1] = useState('');
   const [team2, setTeam2] = useState('');
   const team2Ref = useRef<ComponentRef<typeof TextInput>>(null);
 
   function next() {
     router.push({
-      pathname: '/category',
-      params: { team1: teamName(team1, 0), team2: teamName(team2, 1) },
+      pathname: '/difficulty',
+      params: { team1: teamName(team1, 0), team2: teamName(team2, 1), category: category.id },
     });
   }
 

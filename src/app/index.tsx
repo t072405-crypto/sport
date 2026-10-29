@@ -1,18 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { CategoryChoiceButton } from '@/components/CategoryChoiceButton';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { ScreenBackground } from '@/components/ScreenBackground';
 import { colors, radius, teamColors } from '@/constants/theme';
+import { categoryFromParam } from '@/data/categories';
 import { QUESTIONS_PER_GAME } from '@/hooks/useQuiz';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
 const STEPS: { icon: IconName; text: string }[] = [
+  { icon: 'grid', text: 'Pick a category, or let the AI suggest one' },
   { icon: 'people', text: 'Register two teams' },
-  { icon: 'grid', text: 'Pick a category, or type your own topic' },
   { icon: 'speedometer', text: 'Choose Easy, Medium or Hard' },
   {
     icon: 'swap-horizontal',
@@ -22,6 +24,10 @@ const STEPS: { icon: IconName; text: string }[] = [
 ];
 
 export default function WelcomeScreen() {
+  // Set by the category picker when it returns here; defaults to Mixed sports.
+  const params = useLocalSearchParams<{ category?: string }>();
+  const category = categoryFromParam(params.category);
+
   return (
     <ScreenBackground>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -56,7 +62,14 @@ export default function WelcomeScreen() {
             <Ionicons name="sparkles" size={14} color={colors.tiebreaker} />
             <Text style={styles.poweredText}>Questions written by AI via OpenRouter</Text>
           </View>
-          <PrimaryButton label="Start" onPress={() => router.push('/teams')} />
+          <CategoryChoiceButton
+            category={category}
+            onPress={() => router.push({ pathname: '/category', params: { from: 'welcome' } })}
+          />
+          <PrimaryButton
+            label="Start"
+            onPress={() => router.push({ pathname: '/teams', params: { category: category.id } })}
+          />
         </View>
       </ScrollView>
     </ScreenBackground>

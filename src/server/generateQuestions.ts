@@ -1,24 +1,11 @@
 // Server-only: imported by src/app/api/questions+api.ts, never by the app.
-// Expo keeps this file (and the API key it reads) out of the client bundle.
 import type { Difficulty, Question } from '@/data/questions';
+import { AiServiceError, askOpenRouter } from '@/server/openrouter';
 
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const DEFAULT_MODEL = 'anthropic/claude-haiku-5.5';
-const REQUEST_TIMEOUT_MS = 30000;
 // Ask for a couple of spares in case some fail validation.
 const EXTRA_QUESTIONS = 2;
 const MAX_QUESTION_LENGTH = 160;
 const MAX_ANSWER_LENGTH = 50;
-
-/** An error whose message is safe to show to the player. */
-export class QuestionServiceError extends Error {
-  constructor(
-    message: string,
-    readonly status = 502,
-  ) {
-    super(message);
-  }
-}
 
 const DIFFICULTY_GUIDE: Record<Difficulty, string> = {
   easy: 'widely known facts that casual fans would know',
@@ -34,6 +21,7 @@ Rules:
 - Every fact must be accurate and verifiable. If you are not sure, write a different question.
 - Avoid answers that change over time (current champions, active records) unless the question names a specific year or event.
 - Each question has exactly one correct answer and exactly three plausible but clearly wrong answers.
+- Never use the same correct answer twice in one set: spread the questions across different people, teams, years and events.
 - Questions under ${MAX_QUESTION_LENGTH} characters, answers under ${MAX_ANSWER_LENGTH} characters.
 - Do not reveal the answer in the question.`;
 
@@ -106,12 +94,8 @@ type Options = {
   category: string;
   /** Recently asked questions the AI should not repeat. */
   avoid: string[];
-  /** Aborted when the app disconnects, so an abandoned request stops costing credit. */
   signal?: AbortSignal;
 };
-
-/** Thrown when the app disconnected before the questions were ready. */
-export class ClientGoneError extends Error {}
 
 export async function generateQuestions({
   amount,
@@ -121,80 +105,50 @@ export async function generateQuestions({
   avoid,
   signal,
 }: Options) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    throw new QuestionServiceError(
-      'OPENROUTER_API_KEY is not set. Add it to .env.local and restart the dev server.',
-      500,
-    );
-  }
-
-  let userPrompt =
+  let user =
     `<topic>${topic}</topic>\n` +
     `Write ${amount + EXTRA_QUESTIONS} ${difficulty} trivia questions about this topic ` +
     `(${DIFFICULTY_GUIDE[difficulty]}).`;
   if (avoid.length > 0) {
-    userPrompt += `\nDo not repeat or closely paraphrase these questions:\n- ${avoid.join('\n- ')}`;
+    user += `\nDo not repeat or closely paraphrase these questions:\n- ${avoid.join('\n- ')}`;
   }
 
-  const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-  let res: Response;
-  try {
-    res = await fetch(OPENROUTER_URL, {
-      method: 'POST',
-      signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal,
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'X-Title': 'Sports Quiz',
-      },
-      body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt },
-        ],
-        response_format: {
-          type: 'json_schema',
-          json_schema: { name: 'trivia_questions', strict: true, schema: RESPONSE_SCHEMA },
-        },
-        // Only use providers that support every parameter sent (the JSON schema above).
-        // Don't add parameters the model lacks (e.g. temperature), or no provider will match.
-        provider: { require_parameters: true },
-      }),
-    });
-  } catch {
-    if (signal?.aborted) throw new ClientGoneError();
-    throw new QuestionServiceError(
-      timeoutSignal.aborted ? 'The AI took too long to answer.' : 'Could not reach OpenRouter.',
-    );
-  }
+  const parsed = await askOpenRouter<{ questions?: AiQuestion[] }>({
+    name: 'trivia_questions',
+    system: SYSTEM_PROMPT,
+    user,
+    schema: RESPONSE_SCHEMA,
+    signal,
+  });
 
-  if (res.status === 401) throw new QuestionServiceError('OpenRouter rejected the API key.', 500);
-  if (res.status === 402) throw new QuestionServiceError('Your OpenRouter account is out of credit.');
-  if (res.status === 429) throw new QuestionServiceError('OpenRouter is rate limiting requests.');
-  if (!res.ok) {
-    // OpenRouter explains failures in { error: { message } }, e.g. an unknown model.
-    const detail = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
-    const reason = detail?.error?.message ? `: ${detail.error.message}` : '';
-    throw new QuestionServiceError(`OpenRouter request failed (${res.status})${reason}`);
-  }
-
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  let parsed: { questions?: AiQuestion[] };
-  try {
-    parsed = JSON.parse(data.choices?.[0]?.message?.content ?? '');
-  } catch {
-    throw new QuestionServiceError('The AI returned an unreadable answer.');
-  }
-
-  const questions = (parsed.questions ?? [])
+  const valid = (parsed.questions ?? [])
     .map((item, i) => toQuestion(item, i, difficulty, category))
-    .filter((q): q is Question => q !== null)
-    .slice(0, amount)
-    .map((q, i) => ({ ...q, id: i }));
-  if (questions.length < amount) {
-    throw new QuestionServiceError('The AI returned too few valid questions.');
+    .filter((q): q is Question => q !== null);
+  if (valid.length < amount) {
+    throw new AiServiceError('The AI returned too few valid questions.');
   }
-  return questions;
+  return preferDistinctAnswers(valid, amount).map((q, i) => ({ ...q, id: i }));
+}
+
+const correctAnswer = (q: Question) => q.answers[q.correctIndex].toLowerCase();
+
+/**
+ * Picks `amount` questions, preferring ones whose correct answers differ (so a set
+ * isn't "Tiger Woods" three times). Repeats only fill in if there aren't enough.
+ */
+function preferDistinctAnswers(questions: Question[], amount: number): Question[] {
+  const seen = new Set<string>();
+  const distinct: Question[] = [];
+  const repeats: Question[] = [];
+  for (const q of questions) {
+    if (seen.has(correctAnswer(q))) {
+      repeats.push(q);
+    } else {
+      seen.add(correctAnswer(q));
+      distinct.push(q);
+    }
+  }
+  const picked = new Set([...distinct, ...repeats].slice(0, amount));
+  // Keep the AI's original order.
+  return questions.filter((q) => picked.has(q));
 }

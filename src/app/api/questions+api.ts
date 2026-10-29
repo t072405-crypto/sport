@@ -1,10 +1,7 @@
 import { categoryFromParam, normalizeTopic, PRESET_CATEGORIES } from '@/data/categories';
 import { isDifficulty } from '@/data/questions';
-import {
-  ClientGoneError,
-  generateQuestions,
-  QuestionServiceError,
-} from '@/server/generateQuestions';
+import { generateQuestions } from '@/server/generateQuestions';
+import { AiServiceError, ClientGoneError } from '@/server/openrouter';
 
 const MAX_AMOUNT = 10;
 const MAX_AVOID = 40;
@@ -60,7 +57,7 @@ export async function POST(request: Request) {
   } catch (e) {
     // Nobody is waiting for the answer; OpenRouter was cancelled, nothing to report.
     if (e instanceof ClientGoneError) return new Response(null, { status: 499 });
-    if (e instanceof QuestionServiceError) {
+    if (e instanceof AiServiceError) {
       return Response.json({ error: e.message }, { status: e.status });
     }
     console.error('generateQuestions failed', e);

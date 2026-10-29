@@ -1,8 +1,9 @@
 # Sports Quiz
 
 A two-team mobile sports trivia game built with Expo (React Native), TypeScript and Expo Router.
-Two teams enter their names, pick a category (a preset such as Football or Formula 1, or any topic
-they type, e.g. "NBA in the 90s"), pick a difficulty (Easy, Medium or Hard), and take turns answering
+On the welcome page, players pick a category: a preset such as Football or Formula 1, one of four
+fresh ideas suggested by AI, or any topic they type (e.g. "NBA in the 90s"). Then two teams enter
+their names, pick a difficulty (Easy, Medium or Hard), and take turns answering
 10 fresh multiple-choice questions on that category, written by AI through
 [OpenRouter](https://openrouter.ai) — 5 each. A correct
 answer scores a point for the team whose turn it is. If the teams are tied after 10 questions, a
@@ -29,19 +30,24 @@ Scan the QR code with the Expo Go app (Android) or the Camera app (iOS).
 
 ## Structure
 
-- `src/app/index.tsx` – welcome screen: title, how to play, Start
+- `src/app/index.tsx` – welcome screen: title, how to play, Category button, Start
 - `src/app/teams.tsx` – registration: the two team names (VS)
-- `src/app/category.tsx` – category screen: presets or a custom topic
+- `src/app/category.tsx` – category picker: presets, AI-suggested ideas (↻ for new ones), custom topic
 - `src/app/difficulty.tsx` – difficulty screen (Easy / Medium / Hard)
 - `src/app/game.tsx` – game screen (loading, error, playing)
 - `src/app/result.tsx` – final page: winning team and its points, or a draw
 - `src/app/api/questions+api.ts` – server API route: `POST /api/questions { amount, difficulty, category, avoid }`
-- `src/server/generateQuestions.ts` – server-only OpenRouter call: prompt, JSON schema, validation, shuffling
-- `src/api/questions.ts` – app client for the API route; remembers recent questions to avoid repeats
+- `src/app/api/categories+api.ts` – server API route: `POST /api/categories { avoid }` → 4 AI category ideas
+- `src/server/openrouter.ts` – server-only OpenRouter helper: key, timeout, cancel, errors, JSON parsing
+- `src/server/generateQuestions.ts` – question prompt, JSON schema, validation, shuffling, varied answers
+- `src/server/suggestCategories.ts` – category-idea prompt and validation
+- `src/api/questions.ts`, `src/api/categories.ts` – app clients for the API routes; both remember what
+  was shown to avoid repeats
 - `src/hooks/useQuiz.ts` – game state (load questions, turns, per-team scores, play again)
-- `src/components/` – AppHeader, ScreenBackground, TeamNameInput, TeamScoreboard, CategoryButton,
-  DifficultyButton, InfoPill, QuestionCard, AnswerButton, ProgressBar, NextButton, PrimaryButton,
-  ResultCard
+- `src/hooks/useCategoryIdeas.ts` – AI category ideas for the picker (load, refresh)
+- `src/components/` – AppHeader, ScreenBackground, CategoryChoiceButton, CategoryButton, IdeaChip,
+  TeamNameInput, TeamScoreboard, DifficultyButton, InfoPill, QuestionCard, AnswerButton,
+  ProgressBar, NextButton, PrimaryButton, ResultCard
 - `src/data/categories.ts` – preset categories and custom-topic validation (shared by app and server)
 - `src/data/teams.ts` – team names, defaults and turn order
 - `src/data/questions.ts` – `Question` / `Difficulty` types and offline fallback questions
