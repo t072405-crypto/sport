@@ -22,6 +22,7 @@ import { colors, radius, teamColors } from '@/constants/theme';
 import { MAX_TOPIC_LENGTH, normalizeTopic, PRESET_CATEGORIES } from '@/data/categories';
 import { teamsFromParams } from '@/data/teams';
 import { useCategoryIdeas } from '@/hooks/useCategoryIdeas';
+import { goBack } from '@/utils/goBack';
 
 type Params = {
   team1?: string;
@@ -51,7 +52,7 @@ export default function CategoryScreen() {
 
   return (
     <ScreenBackground>
-      <AppHeader onBack={() => router.back()} />
+      <AppHeader onBack={() => goBack('/')} />
 
       <KeyboardAvoidingView
         style={styles.fill}

@@ -17,6 +17,7 @@ import { TeamNameInput } from '@/components/TeamNameInput';
 import { colors, radius } from '@/constants/theme';
 import { categoryFromParam } from '@/data/categories';
 import { teamName } from '@/data/teams';
+import { goBack } from '@/utils/goBack';
 
 export default function TeamsScreen() {
   // Chosen on the welcome page, so registration goes straight to difficulty.
@@ -35,7 +36,7 @@ export default function TeamsScreen() {
 
   return (
     <ScreenBackground>
-      <AppHeader onBack={() => router.back()} />
+      <AppHeader onBack={() => goBack({ pathname: '/', params: { category: category.id } })} />
 
       <KeyboardAvoidingView
         style={styles.fill}

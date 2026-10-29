@@ -9,6 +9,7 @@ import { categoryFromParam } from '@/data/categories';
 import { DIFFICULTIES, type Difficulty } from '@/data/questions';
 import { teamsFromParams } from '@/data/teams';
 import { QUESTIONS_PER_GAME } from '@/hooks/useQuiz';
+import { goBack } from '@/utils/goBack';
 
 export default function DifficultyScreen() {
   const params = useLocalSearchParams<{ team1?: string; team2?: string; category?: string }>();
@@ -24,7 +25,9 @@ export default function DifficultyScreen() {
 
   return (
     <ScreenBackground>
-      <AppHeader onBack={() => router.back()} />
+      <AppHeader
+        onBack={() => goBack({ pathname: '/teams', params: { category: category.id } })}
+      />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.intro}>

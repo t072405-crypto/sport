@@ -15,6 +15,7 @@ import { categoryFromParam } from '@/data/categories';
 import { isDifficulty } from '@/data/questions';
 import { teamsFromParams } from '@/data/teams';
 import { QUESTIONS_PER_GAME, useQuiz } from '@/hooks/useQuiz';
+import { goBack } from '@/utils/goBack';
 
 type Params = { difficulty?: string; team1?: string; team2?: string; category?: string };
 
@@ -57,7 +58,14 @@ export default function GameScreen() {
 
   return (
     <ScreenBackground>
-      <AppHeader onBack={() => router.back()} />
+      <AppHeader
+        onBack={() =>
+          goBack({
+            pathname: '/difficulty',
+            params: { team1: teams[0], team2: teams[1], category: category.id },
+          })
+        }
+      />
 
       {status === 'loading' && (
         <View style={styles.center}>
