@@ -95,9 +95,14 @@ type Options = {
   difficulty: Difficulty;
   /** Recently asked questions the AI should not repeat. */
   avoid: string[];
+  /** Aborted when the app disconnects, so an abandoned request stops costing credit. */
+  signal?: AbortSignal;
 };
 
-export async function generateQuestions({ amount, difficulty, avoid }: Options) {
+/** Thrown when the app disconnected before the questions were ready. */
+export class ClientGoneError extends Error {}
+
+export async function generateQuestions({ amount, difficulty, avoid, signal }: Options) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
     throw new QuestionServiceError(
@@ -113,13 +118,12 @@ export async function generateQuestions({ amount, difficulty, avoid }: Options) 
     userPrompt += `\nDo not repeat or closely paraphrase these questions:\n- ${avoid.join('\n- ')}`;
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
   let res: Response;
   try {
     res = await fetch(OPENROUTER_URL, {
       method: 'POST',
-      signal: controller.signal,
+      signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal,
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
@@ -141,11 +145,10 @@ export async function generateQuestions({ amount, difficulty, avoid }: Options) 
       }),
     });
   } catch {
+    if (signal?.aborted) throw new ClientGoneError();
     throw new QuestionServiceError(
-      controller.signal.aborted ? 'The AI took too long to answer.' : 'Could not reach OpenRouter.',
+      timeoutSignal.aborted ? 'The AI took too long to answer.' : 'Could not reach OpenRouter.',
     );
-  } finally {
-    clearTimeout(timeout);
   }
 
   if (res.status === 401) throw new QuestionServiceError('OpenRouter rejected the API key.', 500);

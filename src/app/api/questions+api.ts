@@ -1,5 +1,9 @@
 import { isDifficulty } from '@/data/questions';
-import { generateQuestions, QuestionServiceError } from '@/server/generateQuestions';
+import {
+  ClientGoneError,
+  generateQuestions,
+  QuestionServiceError,
+} from '@/server/generateQuestions';
 
 const MAX_AMOUNT = 10;
 const MAX_AVOID = 40;
@@ -28,9 +32,17 @@ export async function POST(request: Request) {
     : [];
 
   try {
-    const questions = await generateQuestions({ amount, difficulty, avoid });
+    const questions = await generateQuestions({
+      amount,
+      difficulty,
+      avoid,
+      // Fires when the app disconnects (left the screen, reloaded, closed).
+      signal: request.signal,
+    });
     return Response.json({ questions });
   } catch (e) {
+    // Nobody is waiting for the answer; OpenRouter was cancelled, nothing to report.
+    if (e instanceof ClientGoneError) return new Response(null, { status: 499 });
     if (e instanceof QuestionServiceError) {
       return Response.json({ error: e.message }, { status: e.status });
     }
