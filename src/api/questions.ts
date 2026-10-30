@@ -3,8 +3,8 @@ import type { Difficulty, Question } from '@/data/questions';
 // The app's own API route (src/app/api/questions+api.ts), which calls OpenRouter.
 // In development, relative URLs go to the dev server started with `npx expo start`.
 const QUESTIONS_URL = '/api/questions';
-// AI generation is slower than a plain API; allow time for the model to answer.
-const REQUEST_TIMEOUT_MS = 45000;
+// AI generation is slow (up to ~75s on the free fallback model); allow time for it.
+const REQUEST_TIMEOUT_MS = 90000;
 // Sent to the AI so it doesn't repeat questions from recent games.
 const RECENT_LIMIT = 40;
 

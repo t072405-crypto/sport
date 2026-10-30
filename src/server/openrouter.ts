@@ -3,7 +3,12 @@
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const DEFAULT_MODEL = 'anthropic/claude-haiku-5.5';
+// Free model used automatically when the account is out of credit (HTTP 402),
+// so the game keeps working. It must support structured outputs.
+const DEFAULT_FREE_MODEL = 'nvidia/nemotron-3.5-super-vl:free';
 const REQUEST_TIMEOUT_MS = 30000;
+// Free models run on shared capacity and answer much more slowly.
+const FREE_REQUEST_TIMEOUT_MS = 75000;
 
 /** An error whose message is safe to show to the player. */
 export class AiServiceError extends Error {
@@ -38,48 +43,66 @@ export async function askOpenRouter<T>({ name, system, user, schema, signal }: O
       500,
     );
   }
+  const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
+  const freeModel = process.env.OPENROUTER_FREE_MODEL || DEFAULT_FREE_MODEL;
 
-  const timeoutSignal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-  let res: Response;
-  try {
-    res = await fetch(OPENROUTER_URL, {
-      method: 'POST',
-      signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal,
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'X-Title': 'Sports Quiz',
-      },
-      body: JSON.stringify({
-        model: process.env.OPENROUTER_MODEL || DEFAULT_MODEL,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-        response_format: { type: 'json_schema', json_schema: { name, strict: true, schema } },
-        // Only use providers that support every parameter sent (the JSON schema above).
-        // Don't add parameters the model lacks (e.g. temperature), or no provider will match.
-        provider: { require_parameters: true },
-      }),
-    });
-  } catch {
-    if (signal?.aborted) throw new ClientGoneError();
-    throw new AiServiceError(
-      timeoutSignal.aborted ? 'The AI took too long to answer.' : 'Could not reach OpenRouter.',
-    );
+  /** Posts the request and reads the whole answer, both within the time limit. */
+  async function send(modelId: string, timeoutMs: number): Promise<{ status: number; body: unknown }> {
+    const timeoutSignal = AbortSignal.timeout(timeoutMs);
+    try {
+      const res = await fetch(OPENROUTER_URL, {
+        method: 'POST',
+        signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal,
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'X-Title': 'Sports Quiz',
+        },
+        body: JSON.stringify({
+          model: modelId,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: user },
+          ],
+          response_format: { type: 'json_schema', json_schema: { name, strict: true, schema } },
+          // Only use providers that support every parameter sent (the JSON schema above).
+          // Don't add parameters the model lacks (e.g. temperature), or no provider will match.
+          provider: { require_parameters: true },
+        }),
+      });
+      // Error bodies may not be JSON; a successful body must be, so let that one throw.
+      const body = res.ok ? await res.json() : await res.json().catch(() => null);
+      return { status: res.status, body };
+    } catch {
+      if (signal?.aborted) throw new ClientGoneError();
+      throw new AiServiceError(
+        timeoutSignal.aborted ? 'The AI took too long to answer.' : 'Could not reach OpenRouter.',
+      );
+    }
+  }
+
+  let res = await send(model, REQUEST_TIMEOUT_MS);
+  if (res.status === 402 && model !== freeModel) {
+    // Out of credit: keep the game running on the free model until credit is added.
+    console.warn(`OpenRouter: out of credit, using free model ${freeModel}`);
+    res = await send(freeModel, FREE_REQUEST_TIMEOUT_MS);
   }
 
   if (res.status === 401) throw new AiServiceError('OpenRouter rejected the API key.', 500);
-  if (res.status === 402) throw new AiServiceError('Your OpenRouter account is out of credit.');
-  if (res.status === 429) throw new AiServiceError('OpenRouter is rate limiting requests.');
-  if (!res.ok) {
+  if (res.status === 402) {
+    throw new AiServiceError(
+      'Your OpenRouter account is out of credit. Add credit at openrouter.ai/credits.',
+    );
+  }
+  if (res.status === 429) throw new AiServiceError('OpenRouter is busy. Try again in a moment.');
+  if (res.status < 200 || res.status >= 300) {
     // OpenRouter explains failures in { error: { message } }, e.g. an unknown model.
-    const detail = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
+    const detail = res.body as { error?: { message?: string } } | null;
     const reason = detail?.error?.message ? `: ${detail.error.message}` : '';
     throw new AiServiceError(`OpenRouter request failed (${res.status})${reason}`);
   }
 
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  const data = res.body as { choices?: { message?: { content?: string } }[] };
   try {
     return JSON.parse(data.choices?.[0]?.message?.content ?? '') as T;
   } catch {

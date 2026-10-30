@@ -71,7 +71,7 @@ export default function GameScreen() {
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.accent} />
           <Text style={styles.muted}>
-            The AI is writing your {category.label} questions…{'\n'}This takes about 10 seconds.
+            The AI is writing your {category.label} questions…{'\n'}This usually takes 10–30 seconds.
           </Text>
         </View>
       )}

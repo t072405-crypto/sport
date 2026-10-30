@@ -1,6 +1,6 @@
 // The app's own API route (src/app/api/categories+api.ts), which calls OpenRouter.
 const CATEGORIES_URL = '/api/categories';
-const REQUEST_TIMEOUT_MS = 30000;
+const REQUEST_TIMEOUT_MS = 60000;
 // Ideas already shown are sent back, so every refresh (and every visit) brings new ones.
 const HISTORY_LIMIT = 30;
 
